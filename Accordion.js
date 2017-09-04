@@ -29,6 +29,7 @@ class Accordion extends Component {
     ]),
     activeSections: PropTypes.array.isRequired,
     underlayColor: PropTypes.string,
+    parent:PropTypes.string /* if there is nested level of section and rows, we should maintain the parent child relationship.if the parent is undefined , then node is in root level hierarchy.*/
   };
 
   static defaultProps = {
@@ -40,25 +41,27 @@ class Accordion extends Component {
     // if activeSection not specified, default to initiallyActiveSection
     this.state = {
       activeSections: [],
+      activeSectionsDict:{},
       activeSection: props.activeSection !== undefined ? props.activeSection : props.initiallyActiveSection,
     };
   }
 
-  _toggleSection(section) {
-    const activeSections = this.state.activeSections;
-    const index = activeSections.indexOf(section);
-    let activeSection = section;
-    if (index > -1) {
-      activeSection = false;
-      activeSections.splice(index, 1);
-    } else {
-      activeSections.push(section);
+  _toggleSection(index) {
+    const activeSectionsDict=this.state.activeSectionsDict
+    var currentlySelectedSection=""
+    if(this.props.parent === undefined){
+      currentlySelectedSection=index.toString()
+    }else{
+      currentlySelectedSection=this.props.parent+'-'+index.toString()
     }
-    this.setState({ activeSections });
-    this.setState({ activeSection });
-
+    if (activeSectionsDict[currentlySelectedSection]===undefined) {
+        activeSectionsDict[currentlySelectedSection]=currentlySelectedSection
+    }else{
+        delete activeSectionsDict[currentlySelectedSection]
+    }
+    this.setState({activeSectionsDict})
     if (this.props.onChange) {
-      this.props.onChange(activeSection);
+      this.props.onChange(currentlySelectedSection);
     }
   }
 
@@ -86,10 +89,10 @@ class Accordion extends Component {
       {this.props.sections.map((section, key) => (
         <View key={key}>
           <TouchableHighlight onPress={() => this._toggleSection(key)} underlayColor={this.props.underlayColor}>
-            {this.props.renderHeader(section, key, this.state.activeSections.indexOf(key) !== -1)}
+            {this.props.renderHeader(section, key, this.state.activeSectionsDict[this.props.parent===undefined ? key.toString():this.props.parent+'-'+key.toString()]!==undefined)}
           </TouchableHighlight>
-          <Collapsible collapsed={this.state.activeSections.indexOf(key) === -1} {...collapsibleProps}>
-            {this.props.renderContent(section, key, this.state.activeSection === key)}
+          <Collapsible collapsed={this.state.activeSectionsDict[this.props.parent===undefined ? key.toString():this.props.parent+'-'+key.toString()]===undefined} {...collapsibleProps}>
+            {this.props.renderContent(section, key, this.props.parent===undefined ? key : this.props.parent+'-'+key.toString())}
           </Collapsible>
         </View>
       ))}
